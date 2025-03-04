@@ -1,14 +1,14 @@
 use axum::{routing::get, Router, Json, extract::State};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, postgres::PgPoolOptions};
-use std::net::SocketAddr;
+// use std::net::SocketAddr;
 use dotenvy::dotenv;
 use std::env;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct User {
     id: i32,
-    name: String,
+    teamName: String,
 }
 
 #[tokio::main]
@@ -31,12 +31,14 @@ async fn main() {
         .with_state(pool); // Pass database pool as state
 
     // Start the server
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("Server running at http://{}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+//     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+//     println!("Server running at http://{}", addr);
+//     axum::Server::bind(&addr)
+//         .serve(app.into_make_service())
+//         .await
+//         .unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3002").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 // Route handler: Root
@@ -44,12 +46,16 @@ async fn root() -> &'static str {
     "Welcome to Axum with PostgreSQL!"
 }
 
-// Route handler: Fetch users from database
+//Route handler: Fetch users from database
 async fn get_users(State(pool): State<PgPool>) -> Json<Vec<User>> {
-    let users = sqlx::query_as!(User, "SELECT id, name FROM master.GPRODKMDB")
+    let users = sqlx::query_as!(User, "SELECT id, teamName FROM LogoClub")
         .fetch_all(&pool)
         .await
         .expect("Failed to fetch users");
 
     Json(users)
 }
+
+// async fn get_users() -> &'static str {
+//     "Welcome to Axum with PostgreSQL!"
+// }
