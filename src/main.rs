@@ -1,14 +1,15 @@
-use axum::{routing::get, Router, Json, extract::State};
+use axum::{routing::get, Router, Json, extract::State, response::IntoResponse};
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, postgres::PgPoolOptions};
+use sqlx::{PgPool, postgres::PgPoolOptions, FromRow};
 // use std::net::SocketAddr;
 use dotenvy::dotenv;
 use std::env;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct User {
+#[derive(Debug, Serialize, Deserialize, FromRow)]
+struct LogoClub {
     id: i32,
-    teamName: String,
+    short_link: String,
+    original_link: String,
 }
 
 #[tokio::main]
@@ -47,15 +48,33 @@ async fn root() -> &'static str {
 }
 
 //Route handler: Fetch users from database
-async fn get_users(State(pool): State<PgPool>) -> Json<Vec<User>> {
-    let users = sqlx::query_as!(User, "SELECT id, teamName FROM LogoClub")
-        .fetch_all(&pool)
-        .await
-        .expect("Failed to fetch users");
+// async fn get_users(State(pool): State<PgPool>) -> Json<Vec<User>> {
+//     let users = sqlx::query!("select id from LogoClub")
+//         .fetch_all(&pool)
+//         .await
+//         .expect("Failed to fetch users");
 
-    Json(users)
+//     Json(users)
+// }
+
+
+#[derive(Serialize, Deserialize)]
+struct Person {
+    name: String,
+    age: u8,
+    email: String,
 }
 
-// async fn get_users() -> &'static str {
-//     "Welcome to Axum with PostgreSQL!"
-// }
+#[derive(Serialize, Deserialize)]
+struct Resp {
+    jum: i32
+}
+async fn get_users(State(pool): State<PgPool>) -> impl IntoResponse {
+    match sqlx::query_as::<_, LogoClub>("SELECT id, short_link, original_link FROM links")
+        .fetch_all(&pool)
+        .await 
+    {
+        Ok(data) => Json(data).into_response(),
+        Err(_) => Json(Vec::<LogoClub>::new()).into_response()
+    }
+}
